@@ -1,0 +1,241 @@
+# ==============================================================================
+# Deepfake Detection Agent - Configuration File
+# ==============================================================================
+# This configuration file controls all aspects of the deepfake detection system.
+# Copy this file to config.local.yaml for local overrides (gitignored).
+# ==============================================================================
+
+# Version of this configuration schema
+config_version: "2.0"
+
+# ==============================================================================
+# ANALYSIS SETTINGS
+# ==============================================================================
+analysis:
+  # Maximum number of frames to analyze (higher = more accurate but slower)
+  # Recommended: 100-500 for most videos
+  max_frames: 200
+  
+  # Sample every Nth frame (1 = every frame, 2 = every other frame, etc.)
+  # Higher values speed up analysis but may miss short-duration anomalies
+  sample_rate: 2
+  
+  # Minimum face size (pixels) for analysis
+  # Faces smaller than this will be skipped
+  min_face_size: 64
+  
+  # Maximum faces to track per frame
+  # Set to 1 for single-person videos, higher for group videos
+  max_faces_per_frame: 1
+  
+  # Enable audio analysis (requires ffmpeg)
+  enable_audio: true
+  
+  # Enable GPU acceleration (requires CUDA)
+  enable_gpu: false
+
+# ==============================================================================
+# DETECTION THRESHOLDS
+# ==============================================================================
+# These thresholds determine how the final verdict is made.
+# Score ranges: 0.0 (definitely real) to 1.0 (definitely fake)
+#
+# Decision logic:
+#   score > deepfake_threshold     → DEEPFAKE
+#   score < uncertain_threshold    → REAL
+#   otherwise                      → UNCERTAIN
+#
+thresholds:
+  # Score above this triggers DEEPFAKE verdict
+  # Higher = fewer detections (more conservative)
+  # Lower = more detections (more aggressive)
+  deepfake: 0.35
+  
+  # Score below this triggers REAL verdict
+  # Higher = more UNCERTAIN results
+  # Lower = more REAL results
+  uncertain: 0.25
+  
+  # Minimum confidence for any verdict
+  # Results below this confidence are marked UNCERTAIN
+  min_confidence: 0.60
+
+# ==============================================================================
+# SKILL WEIGHTS
+# ==============================================================================
+# Weights determine how much each skill contributes to the final score.
+# Higher weight = more influence on the final decision.
+# Set to 0.0 to disable a skill entirely.
+#
+weights:
+  # Visual artifact detection (texture, symmetry, edges, colors)
+  # This is the most reliable signal for most deepfakes
+  visual_artifacts: 3.0
+  
+  # Temporal consistency (identity drift, expression changes)
+  temporal: 1.0
+  
+  # Physiological signals (rPPG/heart rate)
+  # Can be noisy on short or compressed videos
+  physiological: 1.0
+  
+  # Frequency domain analysis (GAN fingerprints)
+  frequency: 1.0
+  
+  # Audio-visual alignment (lip sync)
+  # Only active when audio is present
+  audio_visual: 1.0
+  
+  # Identity consistency (face embedding stability)
+  identity: 1.0
+
+# ==============================================================================
+# SKILL-SPECIFIC SETTINGS
+# ==============================================================================
+skills:
+  visual_artifacts:
+    # Texture analysis thresholds
+    texture:
+      variance_low: 40.0    # Below = suspiciously smooth
+      variance_high: 200.0  # Above = suspiciously sharp
+    
+    # Symmetry analysis
+    symmetry:
+      min_correlation: 0.85  # Below = asymmetric (suspicious)
+    
+    # Edge density thresholds
+    edge_density:
+      ratio_low: 0.02   # Below = too few edges (over-smoothed)
+      ratio_high: 0.12  # Above = too many edges (over-sharpened)
+    
+    # Face-neck color consistency
+    color_consistency:
+      max_difference: 20.0  # LAB color space difference
+    
+    # Boundary sharpness
+    boundary:
+      max_sharpness: 100.0  # Above = artificial boundary
+    
+    # Background motion
+    background_motion:
+      min_ratio: 0.3  # Face motion / background motion ratio
+  
+  temporal:
+    # Identity drift threshold
+    identity_drift_threshold: 0.3
+    
+    # Minimum frames for temporal analysis
+    min_frames: 30
+    
+    # Blink detection
+    blink_detection:
+      enabled: true
+      min_blink_rate: 0.1  # blinks per second
+      max_blink_rate: 0.5  # blinks per second
+  
+  physiological:
+    # Enable rPPG extraction
+    enabled: true
+    
+    # Minimum video length for reliable rPPG (seconds)
+    min_duration: 5.0
+    
+    # Expected heart rate range (BPM)
+    heart_rate:
+      min: 40
+      max: 180
+  
+  audio_visual:
+    # Lip sync tolerance (seconds)
+    sync_tolerance: 0.2
+    
+    # Minimum audio duration for analysis
+    min_duration: 2.0
+
+# ==============================================================================
+# SYNERGY SCORING
+# ==============================================================================
+# When multiple skills detect anomalies, boost the confidence.
+# This reduces false positives from single anomalous signals.
+#
+synergy:
+  enabled: true
+  
+  # Boost factor when N skills detect anomalies
+  # Format: N_triggers: boost_multiplier
+  boosts:
+    2: 1.15  # 2 skills → 15% boost
+    3: 1.30  # 3 skills → 30% boost
+    4: 1.50  # 4+ skills → 50% boost
+  
+  # Minimum score for a skill to count as "triggered"
+  trigger_threshold: 0.2
+
+# ==============================================================================
+# LOGGING & OUTPUT
+# ==============================================================================
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  
+  # Log file path (null = stdout only)
+  file: null
+  
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Enable structured JSON logging
+  json: false
+
+output:
+  # Default output format: text, json, html
+  default_format: text
+  
+  # Include raw scores in output
+  include_raw_scores: false
+  
+  # Include frame-by-frame data
+  include_frame_data: false
+  
+  # Colorize terminal output
+  colorize: true
+
+# ==============================================================================
+# PERFORMANCE & RESOURCE LIMITS
+# ==============================================================================
+performance:
+  # Maximum memory usage (MB)
+  max_memory_mb: 4096
+  
+  # Number of worker threads for parallel processing
+  num_workers: 4
+  
+  # Batch size for frame processing
+  batch_size: 32
+  
+  # Cache face embeddings
+  cache_embeddings: true
+  
+  # Timeout for single video analysis (seconds)
+  timeout: 300
+
+# ==============================================================================
+# ADVANCED SETTINGS
+# ==============================================================================
+advanced:
+  # Debug mode (extra logging, save intermediate results)
+  debug: false
+  
+  # Save visualizations
+  save_visualizations: false
+  visualizations_dir: "./output/visualizations"
+  
+  # Face detection backend: "opencv", "mediapipe", "dlib"
+  face_detection_backend: "opencv"
+  
+  # Model paths (for custom models)
+  models:
+    face_detector: null  # null = use default
+    face_embedder: null
+    rppg_extractor: null
+
