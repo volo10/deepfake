@@ -75,16 +75,18 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# Video files - exclude test videos
-*.mp4
+# Video files - exclude most videos
 *.avi
 *.mov
 *.webm
 *.mkv
 
-# Specific excluded videos (if in parent directory)
-../Ben_Volovelsky*.mp4
-../Womain_in_the*.mp4
+# Specific excluded videos (personal/sensitive)
+Ben_Volovelsky*.mp4
+Womain_in_the*.mp4
+
+# Allow test videos for demo
+!data/*.mp4
 
 # Output files
 output/
